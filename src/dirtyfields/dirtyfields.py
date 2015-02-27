@@ -1,7 +1,8 @@
 # Adapted from http://stackoverflow.com/questions/110803/dirty-fields-in-django
 
 from django.db.models.signals import post_save
-from django.forms.models import model_to_dict
+from django.db.models.fields.related import ManyToManyField
+
 
 class DirtyFieldsMixin(object):
     def __init__(self, *args, **kwargs):
@@ -13,7 +14,7 @@ class DirtyFieldsMixin(object):
         reset_state(sender=self.__class__, instance=self)
 
     def _full_dict(self):
-        return model_to_dict(self)
+        return entire_model_to_dict(self)
 
     def _as_dict(self):
         all_field = {}
@@ -50,3 +51,25 @@ class DirtyFieldsMixin(object):
 
 def reset_state(sender, instance, **kwargs):
     instance._original_state = instance._full_dict()
+
+
+def entire_model_to_dict(instance, fields=None, exclude=None):
+    opts = instance._meta
+    data = {}
+    for f in opts.concrete_fields + opts.virtual_fields + opts.many_to_many:
+        if fields and f.name not in fields:
+            continue
+        if exclude and f.name in exclude:
+            continue
+        if isinstance(f, ManyToManyField):
+            if instance.pk is None:
+                data[f.name] = []
+            else:
+                qs = f.value_from_object(instance)
+                if qs._result_cache is not None:
+                    data[f.name] = [item.pk for item in qs]
+                else:
+                    data[f.name] = list(qs.values_list('pk', flat=True))
+        else:
+            data[f.name] = f.value_from_object(instance)
+    return data
