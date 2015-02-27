@@ -5,6 +5,8 @@ from django.db.models.fields.related import ManyToManyField
 
 
 class DirtyFieldsMixin(object):
+    check_relationship = False
+
     def __init__(self, *args, **kwargs):
         super(DirtyFieldsMixin, self).__init__(*args, **kwargs)
         post_save.connect(
@@ -22,7 +24,9 @@ class DirtyFieldsMixin(object):
 
         return all_field
 
-    def get_dirty_fields(self, check_relationship=False):
+    def get_dirty_fields(self, check_relationship=None):
+        if check_relationship is None:
+            check_relationship = self.check_relationship
         if check_relationship:
             # We want to check every field, including foreign keys and
             # one-to-one fields,
@@ -38,13 +42,19 @@ class DirtyFieldsMixin(object):
 
         return all_modify_field
 
-    def is_dirty(self, check_relationship=False):
+    def is_dirty(self, check_relationship=None):
+        if check_relationship is None:
+            check_relationship = self.check_relationship
         # in order to be dirty we need to have been saved at least once, so we
         # check for a primary key and we need our dirty fields to not be empty
         return (
             not self.pk or
-            not self.get_dirty_fields(check_relationship=check_relationship)
+            bool(self.get_dirty_fields(check_relationship=check_relationship))
         )
+
+
+class DirtyFieldsWithRelationshipChecksMixin(DirtyFieldsMixin):
+    check_relationship = True
 
 
 def reset_state(sender, instance, **kwargs):

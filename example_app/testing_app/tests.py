@@ -1,6 +1,7 @@
 from django.test import TestCase
 
-from example_app.testing_app.models import TestModel, TestModelWithForeignKey, TestModelWithOneToOneField
+from example_app.testing_app.models import TestModel, \
+    TestModelWithForeignKey, TestModelWithOneToOneField
 
 
 class DirtyFieldsMixinTestCase(TestCase):
@@ -40,11 +41,11 @@ class DirtyFieldsMixinTestCase(TestCase):
         tm = TestModelWithForeignKey.objects.create(fkey=tm1)
 
         # initial state shouldn't be dirty
-        self.assertEqual(tm.get_dirty_fields(), {})
+        self.assertEqual(tm.get_dirty_fields(check_relationship=False), {})
 
         # Default dirty check is not taking foreignkeys into account
         tm.fkey = tm2
-        self.assertEqual(tm.get_dirty_fields(), {})
+        self.assertEqual(tm.get_dirty_fields(check_relationship=False), {})
 
         # But if we use 'check_relationships' param, then we have to.
         self.assertEqual(tm.get_dirty_fields(check_relationship=True), {
@@ -57,13 +58,39 @@ class DirtyFieldsMixinTestCase(TestCase):
         tm = TestModelWithOneToOneField.objects.create(o2o=tm1)
 
         # initial state shouldn't be dirty
-        self.assertEqual(tm.get_dirty_fields(), {})
+        self.assertEqual(tm.get_dirty_fields(check_relationship=False), {})
 
         # Default dirty check is not taking onetoone fields into account
         tm.o2o = tm2
-        self.assertEqual(tm.get_dirty_fields(), {})
+        self.assertEqual(tm.get_dirty_fields(check_relationship=False), {})
 
         # But if we use 'check_relationships' param, then we have to.
         self.assertEqual(tm.get_dirty_fields(check_relationship=True), {
             'o2o': tm1.id
         })
+
+    def test_is_dirty(self):
+        tm = TestModel()
+        self.assertTrue(tm.is_dirty())
+
+        tm.save()
+        self.assertFalse(tm.is_dirty())
+
+        m = TestModelWithForeignKey()
+        self.assertTrue(m.is_dirty())
+
+        m.save()
+        self.assertFalse(m.is_dirty())
+
+        m.fkey = tm
+        self.assertTrue(m.is_dirty())
+
+        m.save()
+        self.assertFalse(m.is_dirty())
+
+        m = TestModelWithForeignKey.objects.create(
+            fkey=TestModel.objects.create(),
+        )
+        self.assertFalse(m.is_dirty())
+        m.fkey.boolean = not m.fkey.boolean
+        self.assertFalse(m.is_dirty())
