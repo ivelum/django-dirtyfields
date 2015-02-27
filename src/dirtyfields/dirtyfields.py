@@ -13,9 +13,6 @@ class DirtyFieldsMixin(object):
                 name=self.__class__.__name__))
         reset_state(sender=self.__class__, instance=self)
 
-    def _full_dict(self):
-        return entire_model_to_dict(self)
-
     def _as_dict(self):
         all_field = {}
 
@@ -29,7 +26,7 @@ class DirtyFieldsMixin(object):
         if check_relationship:
             # We want to check every field, including foreign keys and
             # one-to-one fields,
-            new_state = self._full_dict()
+            new_state = entire_model_to_dict(self)
         else:
             new_state = self._as_dict()
         all_modify_field = {}
@@ -44,13 +41,14 @@ class DirtyFieldsMixin(object):
     def is_dirty(self, check_relationship=False):
         # in order to be dirty we need to have been saved at least once, so we
         # check for a primary key and we need our dirty fields to not be empty
-        if not self.pk:
-            return True
-        return {} != self.get_dirty_fields(check_relationship=check_relationship)
+        return (
+            not self.pk or
+            not self.get_dirty_fields(check_relationship=check_relationship)
+        )
 
 
 def reset_state(sender, instance, **kwargs):
-    instance._original_state = instance._full_dict()
+    instance._original_state = entire_model_to_dict(instance)
 
 
 def entire_model_to_dict(instance, fields=None, exclude=None):
