@@ -30,7 +30,7 @@ class DirtyFieldsMixinTestCase(TestCase):
         tm.characters = 'testing'
         self.assertEqual(tm.get_dirty_fields(), {
             'boolean': True,
-            'characters': ''
+            'characters': '',
         })
         tm.save()
         self.assertEqual(tm.get_dirty_fields(), {})
@@ -68,6 +68,13 @@ class DirtyFieldsMixinTestCase(TestCase):
         self.assertEqual(tm.get_dirty_fields(check_relationship=True), {
             'o2o': tm1.id
         })
+
+    def test_is_dirty_partial(self):
+        tm = TestModel.objects.create()
+        tm.boolean = not tm.boolean
+        self.assertTrue(tm.is_dirty())
+        self.assertTrue(tm.is_dirty(fieldslist=['boolean']))
+        self.assertFalse(tm.is_dirty(fieldslist=['characters']))
 
     def test_is_dirty(self):
         tm = TestModel()

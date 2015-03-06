@@ -42,15 +42,18 @@ class DirtyFieldsMixin(object):
 
         return all_modify_field
 
-    def is_dirty(self, check_relationship=None):
+    def is_dirty(self, check_relationship=None, fieldslist=None):
         if check_relationship is None:
             check_relationship = self.check_relationship
         # in order to be dirty we need to have been saved at least once, so we
         # check for a primary key and we need our dirty fields to not be empty
-        return (
-            not self.pk or
-            bool(self.get_dirty_fields(check_relationship=check_relationship))
-        )
+        if not self.pk:
+            return True
+        df = self.get_dirty_fields(check_relationship=check_relationship)
+        if fieldslist:
+            return bool([k for k in df if k in fieldslist])
+        else:
+            return bool(df)
 
 
 class DirtyFieldsWithRelationshipChecksMixin(DirtyFieldsMixin):
