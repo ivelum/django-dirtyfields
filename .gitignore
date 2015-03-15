@@ -2,3 +2,5 @@
 ve
 *.egg-info
 *.db
+.DS_Store
+.idea
