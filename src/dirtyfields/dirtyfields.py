@@ -67,20 +67,10 @@ def reset_state(sender, instance, **kwargs):
 def entire_model_to_dict(instance, fields=None, exclude=None):
     opts = instance._meta
     data = {}
-    for f in opts.concrete_fields + opts.virtual_fields + opts.many_to_many:
+    for f in opts.concrete_fields + opts.virtual_fields:
         if fields and f.name not in fields:
             continue
         if exclude and f.name in exclude:
             continue
-        if isinstance(f, ManyToManyField):
-            if instance.pk is None:
-                data[f.name] = []
-            else:
-                qs = f.value_from_object(instance)
-                if qs._result_cache is not None:
-                    data[f.name] = [item.pk for item in qs]
-                else:
-                    data[f.name] = list(qs.values_list('pk', flat=True))
-        else:
-            data[f.name] = f.value_from_object(instance)
+        data[f.name] = f.value_from_object(instance)
     return data
