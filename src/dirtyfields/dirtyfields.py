@@ -67,7 +67,7 @@ def reset_state(sender, instance, **kwargs):
 def entire_model_to_dict(instance, fields=None, exclude=None):
     opts = instance._meta
     data = {}
-    for f in opts.concrete_fields + opts.virtual_fields:
+    for f in list(opts.concrete_fields) + list(opts.virtual_fields):
         if fields and f.name not in fields:
             continue
         if exclude and f.name in exclude:
